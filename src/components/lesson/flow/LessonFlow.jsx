@@ -34,124 +34,142 @@ const F = "'Nunito', sans-serif"
 const LETTERS = ['A', 'B', 'C', 'D']
 
 // ─── TOP BAR ─────────────────────────────────────────────────────────────────
-// Progress dots left + X close right. On slide 0: back arrow replaces dots.
+// Back arrow (always left) + progress segments (center) + X close (right)
+// On slide 0 the back arrow exits the lesson (same as X close).
 
 function LessonTopBar({ onBack, onClose, total, current }) {
-  const isFirst = current === 0
+  const btnStyle = {
+    width:'38px', height:'38px', borderRadius:'12px', border:'none',
+    background:C.bgPill, fontSize:'16px', cursor:'pointer',
+    display:'flex', alignItems:'center', justifyContent:'center',
+    color:C.text, fontFamily:F, fontWeight:700, flexShrink:0,
+    transition:'background 0.15s',
+  }
 
   return (
     <div style={{
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      padding: '16px 24px 12px',
-      background: C.white,
-      borderBottom: `1px solid ${C.border}`,
-      position: 'sticky', top: 0, zIndex: 10,
+      display:'flex', alignItems:'center', gap:'10px',
+      padding:'14px 20px 10px',
+      background:C.white,
+      borderBottom:`1px solid ${C.border}`,
+      position:'sticky', top:0, zIndex:10,
     }}>
-      {/* Left: back arrow on first slide, thin progress bar otherwise */}
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '6px', marginRight: '12px' }}>
-        {isFirst ? (
-          <button
-            onClick={onBack}
-            style={{ width:'38px', height:'38px', borderRadius:'12px', border:'none', background:C.bgPill, fontSize:'18px', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', color:C.text, fontFamily:F }}
-          >←</button>
-        ) : (
-          /* Progress dots */
-          Array.from({ length: total }).map((_, i) => {
-            const done   = i < current
-            const active = i === current
-            return (
-              <div key={i} style={{
-                height: '6px',
-                flex:   active ? 2 : 1,
-                borderRadius: '3px',
-                background: done ? C.green : active ? C.blue : C.bgPill,
-                opacity: done ? 0.6 : 1,
-                transition: 'all 0.3s ease',
-              }} />
-            )
-          })
-        )}
-      </div>
-
-      {/* Right: X close */}
+      {/* Back arrow — always shown */}
       <button
-        onClick={onClose}
-        style={{
-          width:'38px', height:'38px', borderRadius:'12px', border:'none',
-          background: C.bgPill, fontSize:'16px', cursor:'pointer',
-          display:'flex', alignItems:'center', justifyContent:'center',
-          color: C.text, fontFamily:F, fontWeight:700, flexShrink:0,
-        }}
+        style={btnStyle}
+        onClick={onBack}
         onMouseEnter={e => e.currentTarget.style.background='#E0E0E0'}
         onMouseLeave={e => e.currentTarget.style.background=C.bgPill}
-      >✕</button>
+        aria-label="Previous"
+      >
+        ←
+      </button>
+
+      {/* Progress segments */}
+      <div style={{ flex:1, display:'flex', alignItems:'center', gap:'5px' }}>
+        {Array.from({ length: total }).map((_, i) => {
+          const done   = i < current
+          const active = i === current
+          return (
+            <div key={i} style={{
+              flex:   active ? 2 : 1,
+              height: '5px',
+              borderRadius: '3px',
+              background: done ? C.green : active ? C.blue : C.bgPill,
+              opacity: done ? 0.65 : 1,
+              transition: 'all 0.3s ease',
+            }} />
+          )
+        })}
+      </div>
+
+      {/* X close */}
+      <button
+        style={btnStyle}
+        onClick={onClose}
+        onMouseEnter={e => e.currentTarget.style.background='#E0E0E0'}
+        onMouseLeave={e => e.currentTarget.style.background=C.bgPill}
+        aria-label="Close lesson"
+      >
+        ✕
+      </button>
     </div>
   )
 }
 
 // ─── BOTTOM ACTION BAR ────────────────────────────────────────────────────────
-// Left: circular play/audio button (Coming Soon). Right: main CTA.
+// Left: Listen button (audio placeholder, styled but non-functional for now)
+// Right: Continue / Complete button (flex-1)
+// Extra padding at bottom so the button is never crowded against the screen edge.
 
 function LessonBottomBar({ onNext, isLast, disabled = false }) {
   const [showTip, setShowTip] = useState(false)
 
   return (
     <div style={{
-      display: 'flex', gap: '12px', alignItems: 'center',
-      padding: '14px 24px 28px',
-      background: C.white,
-      borderTop: `1px solid ${C.border}`,
-      position: 'sticky', bottom: 0,
+      display:'flex', flexDirection:'column', gap:'0',
+      padding:'12px 20px',
+      paddingBottom:'max(28px, env(safe-area-inset-bottom, 28px))',
+      background:C.white,
+      borderTop:`1px solid ${C.border}`,
+      position:'sticky', bottom:0,
     }}>
-      {/* Read-aloud button — Coming Soon */}
-      <div style={{ position: 'relative', flexShrink: 0 }}>
-        <button
-          onClick={() => { setShowTip(true); setTimeout(() => setShowTip(false), 2000) }}
-          style={{
-            width:'54px', height:'54px', borderRadius:'27px',
-            background: C.dark, border:'none', cursor:'pointer',
-            display:'flex', alignItems:'center', justifyContent:'center',
-            transition:'opacity 0.15s',
-          }}
-          onMouseEnter={e => e.currentTarget.style.opacity='0.8'}
-          onMouseLeave={e => e.currentTarget.style.opacity='1'}
-        >
-          {/* Play triangle */}
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="white">
-            <path d="M5 3.5L17 10 5 16.5V3.5z"/>
-          </svg>
-        </button>
-        {showTip && (
-          <div style={{
-            position:'absolute', bottom:'62px', left:'50%', transform:'translateX(-50%)',
-            background:C.dark, color:C.white, fontFamily:F, fontWeight:700, fontSize:'11px',
-            padding:'6px 12px', borderRadius:'8px', whiteSpace:'nowrap', zIndex:20,
-          }}>
-            Coming Soon 🎙️
-            <div style={{ position:'absolute', bottom:'-5px', left:'50%', transform:'translateX(-50%)', width:'10px', height:'10px', background:C.dark, clipPath:'polygon(0 0,100% 0,50% 100%)' }}/>
-          </div>
-        )}
-      </div>
+      <div style={{ display:'flex', gap:'12px', alignItems:'center' }}>
 
-      {/* Main CTA */}
-      <button
-        onClick={disabled ? undefined : onNext}
-        style={{
-          flex:1, height:'54px', borderRadius:'16px', border:'none',
-          background: disabled ? '#CCC' : isLast ? C.blue : C.green,
-          color: C.white, fontFamily:F, fontWeight:900, fontSize:'16px',
-          cursor: disabled ? 'not-allowed' : 'pointer',
-          opacity: disabled ? 0.5 : 1,
-          transition:'background 0.2s, transform 0.1s',
-          letterSpacing:'0.2px',
-        }}
-        onMouseDown={e => { if (!disabled) e.currentTarget.style.transform='scale(0.98)' }}
-        onMouseUp={e => { e.currentTarget.style.transform='scale(1)' }}
-        onMouseEnter={e => { if (!disabled) e.currentTarget.style.background = isLast ? '#1E2BC0' : C.greenDark }}
-        onMouseLeave={e => { if (!disabled) e.currentTarget.style.background = isLast ? C.blue : C.green }}
-      >
-        {isLast ? 'Complete Lesson ✓' : 'Continue →'}
-      </button>
+        {/* Listen / read-aloud button */}
+        <div style={{ position:'relative', flexShrink:0 }}>
+          <button
+            onClick={() => { setShowTip(true); setTimeout(() => setShowTip(false), 2200) }}
+            style={{
+              width:'54px', height:'54px', borderRadius:'27px',
+              background:C.dark, border:'none', cursor:'pointer',
+              display:'flex', alignItems:'center', justifyContent:'center',
+              transition:'opacity 0.15s',
+            }}
+            onMouseEnter={e => e.currentTarget.style.opacity='0.8'}
+            onMouseLeave={e => e.currentTarget.style.opacity='1'}
+            aria-label="Listen to this lesson"
+          >
+            {/* Speaker / headphones icon */}
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+              <path d="M3 9C3 5.686 7.029 3 12 3s9 2.686 9 6v6c0 1.657-1.343 3-3 3h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h2V9c0-2.761-3.134-5-7-5S5 6.239 5 9v3h2a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H6a3 3 0 0 1-3-3V9z" fill="white"/>
+            </svg>
+          </button>
+
+          {/* Tooltip */}
+          {showTip && (
+            <div style={{
+              position:'absolute', bottom:'62px', left:'50%', transform:'translateX(-50%)',
+              background:C.dark, color:C.white, fontFamily:F, fontWeight:700, fontSize:'11px',
+              padding:'6px 12px', borderRadius:'8px', whiteSpace:'nowrap', zIndex:20,
+              lineHeight:1.4, textAlign:'center',
+            }}>
+              🎙️ Audio coming soon
+              <div style={{ position:'absolute', bottom:'-4px', left:'50%', transform:'translateX(-50%)', width:'8px', height:'8px', background:C.dark, clipPath:'polygon(0 0,100% 0,50% 100%)' }}/>
+            </div>
+          )}
+        </div>
+
+        {/* Main CTA */}
+        <button
+          onClick={disabled ? undefined : onNext}
+          style={{
+            flex:1, height:'54px', borderRadius:'16px', border:'none',
+            background: disabled ? '#CCC' : isLast ? C.blue : C.green,
+            color:C.white, fontFamily:F, fontWeight:900, fontSize:'16px',
+            cursor: disabled ? 'not-allowed' : 'pointer',
+            opacity: disabled ? 0.5 : 1,
+            transition:'background 0.2s, transform 0.1s',
+            letterSpacing:'0.2px',
+          }}
+          onMouseDown={e  => { if (!disabled) e.currentTarget.style.transform='scale(0.98)' }}
+          onMouseUp={e    => { e.currentTarget.style.transform='scale(1)' }}
+          onMouseEnter={e => { if (!disabled) e.currentTarget.style.background = isLast ? '#1E2BC0' : C.greenDark }}
+          onMouseLeave={e => { if (!disabled) e.currentTarget.style.background = isLast ? C.blue    : C.green   }}
+        >
+          {isLast ? 'Complete Lesson ✓' : 'Continue →'}
+        </button>
+      </div>
     </div>
   )
 }
@@ -226,52 +244,54 @@ function BodyText({ children, style = {} }) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SCREEN 1 — COVER
+// Layout: subject tag + lesson title at top, meta chips, then mascot intro below
 // ─────────────────────────────────────────────────────────────────────────────
 
 function ScreenCover({ lesson }) {
   return (
-    <div style={{ padding:'24px 24px 8px', flex:1, display:'flex', flexDirection:'column' }}>
-      {/* Hero image area */}
-      <div style={{
-        borderRadius:'24px', height:'200px',
-        background:'linear-gradient(135deg,#EEF0FF,#E0E4FF)',
-        display:'flex', alignItems:'center', justifyContent:'center',
-        marginBottom:'24px', position:'relative', overflow:'hidden',
-      }}>
-        <div style={{ position:'absolute', width:'140px', height:'140px', borderRadius:'50%', background:'rgba(45,60,230,0.08)', top:'-30px', right:'-30px' }}/>
-        <svg width="56" height="56" viewBox="0 0 24 24" fill="none" style={{ position:'relative', zIndex:1 }}>
-          <rect x="3" y="5" width="18" height="14" rx="3" stroke="#6070E0" strokeWidth="1.5"/>
-          <circle cx="9" cy="10" r="2" stroke="#6070E0" strokeWidth="1.5"/>
-          <path d="M3 16l4-3 3 2.5 4-5 5 5.5" stroke="#6070E0" strokeWidth="1.5" strokeLinejoin="round"/>
-        </svg>
-      </div>
+    <div style={{ padding:'24px 24px 32px', flex:1, display:'flex', flexDirection:'column' }}>
 
-      {/* Tag */}
-      <div style={{ display:'inline-flex', alignSelf:'flex-start', background:'#EEF0FF', color:C.blue, fontSize:'11px', fontWeight:800, padding:'4px 14px', borderRadius:'50px', letterSpacing:'0.5px', textTransform:'uppercase', fontFamily:F, marginBottom:'10px' }}>
+      {/* Subject + chapter tag */}
+      <div style={{ display:'inline-flex', alignSelf:'flex-start', background:'#EEF0FF', color:C.blue, fontSize:'11px', fontWeight:800, padding:'4px 14px', borderRadius:'50px', letterSpacing:'0.5px', textTransform:'uppercase', fontFamily:F, marginBottom:'12px' }}>
         {lesson.subject} · {lesson.chapter}
       </div>
 
-      {/* Title */}
-      <div style={{ fontSize:'28px', fontWeight:900, color:C.text, lineHeight:1.2, fontFamily:F, marginBottom:'12px' }}>
+      {/* Lesson title — large and prominent at the top */}
+      <div style={{ fontSize:'30px', fontWeight:900, color:C.text, lineHeight:1.2, fontFamily:F, marginBottom:'16px' }}>
         {lesson.title}
       </div>
 
-      {/* Meta chips */}
-      <div style={{ display:'flex', gap:'10px', marginBottom:'16px', flexWrap:'wrap' }}>
+      {/* Meta chips: duration, slides, XP */}
+      <div style={{ display:'flex', gap:'8px', marginBottom:'28px', flexWrap:'wrap' }}>
         {[
-          { label: lesson.duration },
-          { label: `${lesson.slideCount} slides` },
-          { label: `${lesson.xpReward} pts` },
+          { icon:'⏱', label: lesson.duration         },
+          { icon:'📖', label: `${lesson.slideCount} slides` },
+          { icon:'⭐', label: `${lesson.xpReward} pts`      },
         ].map((chip, i) => (
-          <div key={i} style={{ background:C.surface, borderRadius:'50px', padding:'7px 14px', fontSize:'13px', fontWeight:700, color:'#555', fontFamily:F }}>
-            {chip.label}
+          <div key={i} style={{ background:C.surface, borderRadius:'50px', padding:'6px 14px', fontSize:'13px', fontWeight:700, color:'#555', fontFamily:F, display:'flex', alignItems:'center', gap:'5px' }}>
+            <span>{chip.icon}</span>{chip.label}
           </div>
         ))}
       </div>
 
-      <div style={{ fontSize:'15px', fontWeight:600, color:'#666', lineHeight:1.65, fontFamily:F, flex:1 }}>
-        {lesson.description}
+      {/* Mascot intro — mascot + speech bubble, sits below the title */}
+      <div style={{ display:'flex', gap:'14px', alignItems:'flex-start', background:C.surface, borderRadius:'20px', padding:'18px', marginBottom:'20px' }}>
+        <MascotPlaceholder size={72} />
+        <div style={{ flex:1 }}>
+          {/* Bubble tail pointing left toward mascot */}
+          <div style={{ background:C.white, borderRadius:'0 16px 16px 16px', padding:'14px 16px', border:`1px solid ${C.border}` }}>
+            <div style={{ fontSize:'15px', fontWeight:700, color:C.text, fontFamily:F, lineHeight:1.6 }}>
+              {lesson.description}
+            </div>
+          </div>
+          <div style={{ fontSize:'12px', fontWeight:700, color:C.mutedLt, fontFamily:F, marginTop:'6px', paddingLeft:'4px' }}>
+            Your Guide
+          </div>
+        </div>
       </div>
+
+      {/* Spacer so content doesn't press against bottom bar */}
+      <div style={{ flex:1 }}/>
     </div>
   )
 }
@@ -301,7 +321,7 @@ function ScreenMascotHook({ slide }) {
   }, [slide.hookText])
 
   return (
-    <div style={{ padding:'20px 24px 8px', flex:1, display:'flex', flexDirection:'column' }}>
+    <div style={{ padding:'20px 24px 36px', flex:1, display:'flex', flexDirection:'column' }}>
       <SlideLabel>🎯 Did you know?</SlideLabel>
 
       {/* Mascot + bubble */}
@@ -346,7 +366,7 @@ function ScreenLessonContent({ slide }) {
   }
 
   return (
-    <div style={{ padding:'20px 24px 8px', flex:1, display:'flex', flexDirection:'column' }}>
+    <div style={{ padding:'20px 24px 36px', flex:1, display:'flex', flexDirection:'column' }}>
       <SlideLabel>📌 Concept {slide.conceptIndex} of {slide.conceptTotal}</SlideLabel>
 
       <div style={{ fontSize:'24px', fontWeight:900, color:C.text, fontFamily:F, lineHeight:1.25, marginBottom:'20px' }}>
@@ -393,7 +413,7 @@ function ScreenLessonContent({ slide }) {
 
 function ScreenWorkedExample({ slide }) {
   return (
-    <div style={{ padding:'20px 24px 8px', flex:1, display:'flex', flexDirection:'column' }}>
+    <div style={{ padding:'20px 24px 36px', flex:1, display:'flex', flexDirection:'column' }}>
       <SlideLabel>📐 Worked Example</SlideLabel>
 
       {/* Problem card */}
@@ -460,7 +480,7 @@ function ScreenPracticeQuestion({ slide, onNext }) {
   }
 
   return (
-    <div style={{ padding:'20px 24px 8px', flex:1, display:'flex', flexDirection:'column' }}>
+    <div style={{ padding:'20px 24px 36px', flex:1, display:'flex', flexDirection:'column' }}>
       <SlideLabel>💪 Your Turn</SlideLabel>
 
       {/* Mascot header */}
@@ -542,7 +562,7 @@ function PopStar({ delay }) {
 
 function ScreenLessonComplete({ lesson }) {
   return (
-    <div style={{ padding:'20px 24px 8px', flex:1, display:'flex', flexDirection:'column' }}>
+    <div style={{ padding:'20px 24px 36px', flex:1, display:'flex', flexDirection:'column' }}>
       {/* Blue hero */}
       <div style={{ background:C.blue, borderRadius:'24px', padding:'28px 24px', textAlign:'center', position:'relative', overflow:'hidden', marginBottom:'16px' }}>
         <div style={{ position:'absolute', width:'180px', height:'180px', borderRadius:'50%', background:'rgba(255,255,255,0.06)', top:'-70px', right:'-50px' }}/>
@@ -718,7 +738,7 @@ export function LessonFlow({ lesson = lessonData, onComplete }) {
     }}>
       {/* Sticky top bar */}
       <LessonTopBar
-        onBack={onComplete}
+        onBack={idx === 0 ? onComplete : () => navigate(-1)}
         onClose={onComplete}
         total={total}
         current={idx}

@@ -1,13 +1,14 @@
 // Full-screen immersive lesson layout.
-// Covers entire viewport. No sidebar, no bottom nav, no distractions.
+// position:fixed + zIndex:9999 guarantees bottom nav (zIndex:40) is hidden.
+// safe-area-inset-bottom handles iPhone home indicator.
 export default function LessonLayout({ children }) {
   return (
     <div style={{
       position:   'fixed',
       inset:      0,
-      zIndex:     100,
+      zIndex:     9999,
       background: '#FFFFFF',
-      overflowY:  'auto',
+      overflowY:  'hidden',   // LessonFlow manages its own internal scroll
       fontFamily: "'Nunito', sans-serif",
     }}>
       {children}
