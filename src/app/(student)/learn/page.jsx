@@ -51,7 +51,7 @@ const TOPICS = {
   physics: [
     { chapter:'Chapter 1 — Mechanics', items:[
       { id:'p1', title:'Introduction to Motion',  status:'done',    lessons:3, pts:50, slug:'intro-motion' },
-      { id:'p2', title:'Velocity & Acceleration', status:'current', lessons:4, pts:60, slug:'velocity'     },
+      { id:'p2', title:'Velocity & Acceleration', status:'current', lessons:4, pts:60, slug:'velocity', lessonId:'physics-velocity-1' },
       { id:'p3', title:"Newton's Laws",           status:'locked',  lessons:5, pts:70, slug:'newtons-laws' },
     ]},
     { chapter:'Chapter 2 — Energy', items:[
@@ -124,7 +124,7 @@ function statusCfg(status) {
 function TopicCard({ topic, subjectSlug }) {
   const cfg    = statusCfg(topic.status)
   const locked = topic.status === 'locked'
-  const href   = `/learn/${subjectSlug}/${topic.slug}/lesson/lesson-1`
+  const href   = `/learn/${subjectSlug}/${topic.slug}/lesson/${topic.lessonId || 'lesson-1'}`
 
   const card = (
     <div style={{
