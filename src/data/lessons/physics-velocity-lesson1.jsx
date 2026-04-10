@@ -20,16 +20,16 @@ export const velocityLesson1 = {
 
   slides: [
 
-    // ── 1. Topic intro — typewriter fires on mascotLine
+    // ── 1. Topic intro: typewriter fires on mascotLine
     {
       id: 's1', type: 'topic_intro',
       content: {
         topicTitle: 'Understanding Speed',
-        mascotLine: "Today we're learning about Speed. You already know this from real life — every time you say a car is 'fast' or 'slow', you're already thinking about speed. 🚗",
+        mascotLine: "Today we're learning about Speed.",
       },
     },
 
-    // ── 2. Hook — immersive scenario, feedback pushed below options
+    // ── 2. Hook: immersive scenario, feedback pushed below options
     {
       id: 's2', type: 'hook',
       content: {
@@ -37,16 +37,16 @@ export const velocityLesson1 = {
         question: 'Who was moving faster?',
         options: [
           { id: 'a', label: 'Chidi',
-            explanation: 'Chidi actually took longer to cover the same distance — so he was moving slower, not faster.' },
+            explanation: 'Chidi took longer to cover the same distance. That means he was moving slower, not faster.' },
           { id: 'b', label: 'Amaka',
-            explanation: 'Correct thinking! Amaka covered the same distance in less time. More distance in less time = higher speed. That\'s exactly what speed measures.' },
+            explanation: 'Amaka covered the same distance in less time. More distance in less time means higher speed. That is exactly what speed measures.' },
           { id: 'c', label: 'They moved at the same speed',
-            explanation: 'Same distance but different times means different speeds. Same distance ÷ different time = different speed.' },
+            explanation: 'Same distance but different times means different speeds. Same distance divided by different time gives different speed.' },
         ],
       },
     },
 
-    // ── 3. Definition — "What is Speed?", image placeholder, NO example here
+    // ── 3. Definition: "What is Speed?", image placeholder, NO example here
     {
       id: 's3', type: 'definition',
       content: {
@@ -55,18 +55,18 @@ export const velocityLesson1 = {
       },
     },
 
-    // ── 4. Concept — real-world example lives here (not on definition slide)
+    // ── 4. Concept: real-world example lives here (not on definition slide)
     {
       id: 's4', type: 'concept',
       content: {
         heading: 'Speed in everyday life',
-        body:    'Speed connects distance and time. Two objects can travel the same route — the one that arrives first was moving faster.',
+        body:    'Speed connects distance and time. Two objects can travel the same route: the one that arrives first was moving faster.',
         callout: 'Speed does NOT depend on direction. Whether a danfo is going north or south at 60 km/h, its speed is 60 km/h.',
-        example: 'A danfo travelling at 60 km/h covers 60 km in one hour. A motorcycle at 80 km/h covers 80 km in the same hour — it is faster because it covers more ground in the same time.',
+        example: 'A danfo travelling at 60 km/h covers 60 km in one hour. A motorcycle at 80 km/h covers 80 km in the same hour: it is faster because it covers more ground in the same time.',
       },
     },
 
-    // ── 5. Formula — blackboard-style fractions
+    // ── 5. Formula: blackboard-style fractions
     {
       id: 's5', type: 'formula',
       content: {
@@ -77,14 +77,14 @@ export const velocityLesson1 = {
           'T = [D/S]',
         ],
         componentBreakdown: [
-          { symbol: 'S', meaning: 'Speed — measured in km/h or m/s' },
-          { symbol: 'D', meaning: 'Distance — measured in km or metres (m)' },
-          { symbol: 'T', meaning: 'Time — measured in hours (h) or seconds (s)' },
+          { symbol: 'S', meaning: 'Speed: measured in km/h or m/s' },
+          { symbol: 'D', meaning: 'Distance: measured in km or metres (m)' },
+          { symbol: 'T', meaning: 'Time: measured in hours (h) or seconds (s)' },
         ],
       },
     },
 
-    // ── 6. Worked example 1 — easy, formatted steps
+    // ── 6. Worked example 1: easy, formatted steps
     {
       id: 's6', type: 'worked_example',
       content: {
@@ -102,7 +102,7 @@ export const velocityLesson1 = {
       },
     },
 
-    // ── 7. Worked example 2 — medium difficulty
+    // ── 7. Worked example 2: medium difficulty
     {
       id: 's7', type: 'worked_example',
       content: {
@@ -121,7 +121,7 @@ export const velocityLesson1 = {
       },
     },
 
-    // ── 8. Try it — solution reveals BottomBar Continue (Req. 8)
+    // ── 8. Try it: solution reveals BottomBar Continue (Req. 8)
     {
       id: 's8', type: 'try_it',
       content: {
@@ -140,7 +140,7 @@ export const velocityLesson1 = {
       },
     },
 
-    // ── 9. Practice question 1 — with structured explanation + working steps
+    // ── 9. Practice question 1: with structured explanation + working steps
     {
       id: 's9', type: 'practice_question',
       content: {
@@ -158,14 +158,14 @@ export const velocityLesson1 = {
             ],
           },
           { id: 'c', label: '1350 km/h', isCorrect: false,
-            wrongExplanation: '1350 comes from multiplying 450 × 3 — but the formula says DIVIDE Distance by Time.' },
+            wrongExplanation: '1350 comes from multiplying 450 × 3: but the formula says DIVIDE Distance by Time.' },
           { id: 'd', label: '50 km/h', isCorrect: false,
             wrongExplanation: '50 is too small. Check: 50 × 3 = 150, not 450. Divide 450 by 3.' },
         ],
       },
     },
 
-    // ── 10. Practice question 2 — rearranged formula (finds distance)
+    // ── 10. Practice question 2: rearranged formula (finds distance)
     {
       id: 's10', type: 'practice_question',
       content: {
@@ -194,8 +194,8 @@ export const velocityLesson1 = {
     {
       id: 's11', type: 'lesson_complete',
       content: {
-        completionMessage: "You nailed Speed! You can now calculate speed, distance, and time using S = D ÷ T — and you know how to rearrange it too. That formula is yours to keep. 🎉",
-        nextLessonTitle:   'Velocity — Speed with Direction',
+        completionMessage: "You nailed Speed! You can now calculate speed, distance, and time using S = D ÷ T: and you know how to rearrange it too. That formula is yours to keep. 🎉",
+        nextLessonTitle:   'Velocity: Speed with Direction',
       },
     },
   ],

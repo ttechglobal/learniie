@@ -54,7 +54,7 @@ const SLIDE_EMOTION = {
 const SUCCESS_MSGS = [
   "Yes! Exactly right! 🎉",
   "That's it! You've got it. ✨",
-  "Perfect — you nailed that! 🔥",
+  "Perfect. You nailed that! 🔥",
   "Brilliant thinking. 💡",
   "Nailed it! Keep going! ⚡",
 ]
@@ -140,24 +140,25 @@ function MathExpr({ expr, size = 'md', color = C.body }) {
   )
 }
 
-// A "blackboard" formula display block — dark bg, prominent fraction rendering
+// A formula display block — white card, blue border, high contrast (Fix 3)
+// The formula text is brand blue on white — sharp and readable at all times.
 function FormulaBlock({ label, expr, variants = [], children }) {
   return (
-    <div style={{ background: '#1a1a2e', borderRadius: '18px', padding: '20px 22px', textAlign: 'center' }}>
+    <div style={{ background: C.white, border: `2px solid ${C.blue}`, borderRadius: '14px', padding: '20px 22px', textAlign: 'center' }}>
       {label && (
-        <div style={{ fontSize: '10px', fontWeight: 900, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: '1.2px', fontFamily: F, marginBottom: '14px' }}>{label}</div>
+        <div style={{ fontSize: '10px', fontWeight: 900, color: C.muted, textTransform: 'uppercase', letterSpacing: '1.2px', fontFamily: F, marginBottom: '14px' }}>{label}</div>
       )}
       {expr && (
         <div style={{ marginBottom: variants.length ? '16px' : '0' }}>
-          <MathExpr expr={expr} size="lg" color="#FFFFFF" />
+          <MathExpr expr={expr} size="lg" color={C.blue} />
         </div>
       )}
       {children}
       {variants.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: expr ? '0' : '0' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {variants.map((v, i) => (
-            <div key={i} style={{ background: 'rgba(255,255,255,0.10)', borderRadius: '10px', padding: '10px 14px', textAlign: 'center' }}>
-              <MathExpr expr={v} size="sm" color="rgba(255,255,255,0.9)" />
+            <div key={i} style={{ background: C.blueLt, borderRadius: '10px', padding: '10px 14px', textAlign: 'center' }}>
+              <MathExpr expr={v} size="sm" color={C.blue} />
             </div>
           ))}
         </div>
@@ -650,114 +651,146 @@ function SlideTryIt({ slide, onNext, onMascotEmotion, onPracticeReady }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SLIDE 8 — PRACTICE QUESTION  (Req. 9: structured explanation layout)
+// SLIDE 8 — PRACTICE QUESTION
+// State machine: idle → wrong_1 → wrong_2 → revealed | correct
+// CRITICAL: The correct answer is NEVER highlighted until state='revealed'.
+// Only the student's selected (wrong) choice turns red. All others stay default.
 // ─────────────────────────────────────────────────────────────────────────────
 
 function SlidePracticeQuestion({ slide, onNext, onXP, onMascotEmotion, onPracticeReady }) {
   const { question, options, xpValue, explanation: globalExplanation } = slide.content
-  const [selected, setSelected] = useState(null)
-  const [attempts, setAttempts] = useState(0)
-  const [revealed, setRevealed] = useState(false)
-  const [awarded,  setAwarded]  = useState(false)
 
-  const correctOpt = options.find(o => o.isCorrect)
-  const isCorrect  = selected?.isCorrect
-  const wrongOpt   = selected && !selected.isCorrect ? selected : null
-  const showSeeAns = attempts >= 2 && !isCorrect && !revealed
+  // State machine: 'idle' | 'wrong_1' | 'wrong_2' | 'correct' | 'revealed'
+  const [qState,          setQState]          = useState('idle')
+  const [selectedWrongId, setSelectedWrongId] = useState(null)
+  const [wrongExplanation,setWrongExplanation]= useState(null)
+  const [awarded,         setAwarded]         = useState(false)
+
+  const correctOpt   = options.find(o => o.isCorrect)
+  const isAnswered   = qState === 'correct' || qState === 'revealed'
+  const showSeeAns   = qState === 'wrong_2'
+  const showTryAgain = qState === 'wrong_1' || qState === 'wrong_2'
 
   useEffect(() => {
-    onPracticeReady?.(isCorrect || revealed)
-  }, [isCorrect, revealed])
+    onPracticeReady?.(isAnswered)
+  }, [isAnswered])
 
   function handleSelect(opt) {
-    if (awarded || revealed) return
-    setSelected(opt); setAttempts(a => a + 1)
-    if (opt.isCorrect) { onMascotEmotion('celebrating'); onXP(xpValue); setAwarded(true) }
-    else onMascotEmotion('encouraging')
+    if (isAnswered) return
+
+    if (opt.isCorrect) {
+      setQState('correct')
+      onMascotEmotion('celebrating')
+      if (!awarded) { onXP(xpValue); setAwarded(true) }
+    } else {
+      const nextState = qState === 'idle' ? 'wrong_1' : 'wrong_2'
+      setQState(nextState)
+      setSelectedWrongId(opt.id)
+      setWrongExplanation(opt.wrongExplanation || null)
+      onMascotEmotion('encouraging')
+    }
+  }
+
+  function handleTryAgain() {
+    setSelectedWrongId(null)
+    setWrongExplanation(null)
+    // Keep qState at wrong_1/wrong_2 so attempts are tracked
   }
 
   function handleSeeAnswer() {
-    setRevealed(true); setSelected(correctOpt); onMascotEmotion('teaching')
+    setQState('revealed')
+    onMascotEmotion('teaching')
     if (!awarded) { onXP(Math.floor(xpValue / 2)); setAwarded(true) }
   }
 
-  const successMsg = SUCCESS_MSGS[attempts % SUCCESS_MSGS.length]
-  const wrongMsg   = WRONG_MSGS[Math.min(attempts - 1, WRONG_MSGS.length - 1)]
+  // Option visual state — ONLY the selected wrong option turns red.
+  // Correct option NEVER styled until state=correct or state=revealed.
+  function getOptStyle(opt) {
+    if (qState === 'correct' && opt.isCorrect)  return 'correct'
+    if (qState === 'revealed' && opt.isCorrect) return 'correct'
+    if (opt.id === selectedWrongId)             return 'wrong'
+    return 'default'
+  }
 
-  function optBg(opt)     { const s = selected?.id === opt.id; if (!selected) return C.surface; if (opt.isCorrect) return C.greenLt; if (s && !opt.isCorrect) return '#FFF0F1'; return C.surface }
-  function optBorder(opt) { const s = selected?.id === opt.id; if (!selected) return `1.5px solid ${C.border}`; if (opt.isCorrect) return `2px solid ${C.green}`; if (s && !opt.isCorrect) return `2px solid ${C.red}`; return `1.5px solid ${C.border}` }
-  function badgeBg(opt)   { const s = selected?.id === opt.id; if (!selected) return C.bgPill; if (opt.isCorrect) return C.green; if (s && !opt.isCorrect) return C.red; return C.bgPill }
-  function badgeColor(opt){ const s = selected?.id === opt.id; if (!selected) return '#555'; if (opt.isCorrect || (s && !opt.isCorrect)) return C.white; return '#AAA' }
+  const styleMap = {
+    correct: { bg: C.greenLt, border: `2px solid ${C.green}`,  badgeBg: C.green,  badgeColor: C.white,  opacity: 1    },
+    wrong:   { bg: '#FFF0F1', border: `2px solid ${C.red}`,    badgeBg: C.red,    badgeColor: C.white,  opacity: 1    },
+    default: { bg: C.surface, border: `1.5px solid ${C.border}`, badgeBg: C.bgPill, badgeColor: '#555', opacity: 1    },
+  }
 
-  // Explanation to display — per-option wrongExplanation or global explanation
-  const showExplanation  = isCorrect || revealed
-  const explanation      = (wrongOpt && !revealed) ? wrongOpt.wrongExplanation : (globalExplanation || correctOpt?.explanation || '')
-  const correctWorkSteps = (correctOpt?.workSteps) || []
+  const successMsg = SUCCESS_MSGS[0]
+  const wrongMsg   = WRONG_MSGS[qState === 'wrong_2' ? 1 : 0]
+
+  // Explanation block content
+  const correctWorkSteps = correctOpt?.workSteps || []
+  const showCorrectExpl  = isAnswered
+  const explanation      = globalExplanation || correctOpt?.explanation || ''
 
   return (
     <div style={{ padding: '20px 20px 32px', flex: 1, display: 'flex', flexDirection: 'column', gap: '14px' }}>
       <MascotCompanion
-        emotion={isCorrect ? 'celebrating' : attempts > 0 ? 'encouraging' : 'thinking'}
-        message={isCorrect ? successMsg : attempts > 0 ? wrongMsg : "Time to test yourself! Pick the answer you think is right."}
+        emotion={qState === 'correct' ? 'celebrating' : qState === 'idle' ? 'thinking' : 'encouraging'}
+        message={qState === 'correct' ? successMsg : qState === 'idle' ? "Time to test yourself! Pick the answer you think is right." : wrongMsg}
       />
 
       <div style={{ background: C.surface, borderRadius: '16px', padding: '16px 18px', border: `1px solid ${C.border}` }}>
         <Body style={{ fontSize: '17px' }}>{question}</Body>
       </div>
 
-      {/* Options */}
+      {/* Options — only selected wrong turns red; correct stays neutral until revealed */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '9px' }}>
-        {options.map((opt, i) => (
-          <div key={opt.id} onClick={() => !awarded && !revealed && !selected && handleSelect(opt)} style={{
-            borderRadius: '14px', padding: '14px 16px', display: 'flex', gap: '12px',
-            alignItems: 'center', cursor: awarded || revealed || selected ? 'default' : 'pointer',
-            transition: 'all 0.2s', background: optBg(opt), border: optBorder(opt),
-            opacity: selected && !opt.isCorrect && selected.id !== opt.id ? 0.45 : 1,
-          }}>
-            <div style={{ width: '32px', height: '32px', borderRadius: '9px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 900, flexShrink: 0, fontFamily: F, transition: 'all 0.2s', background: badgeBg(opt), color: badgeColor(opt) }}>
-              {LETTERS[i]}
+        {options.map((opt, i) => {
+          const s = getOptStyle(opt)
+          const st = styleMap[s]
+          const canTap = !isAnswered && opt.id !== selectedWrongId
+          return (
+            <div key={opt.id} onClick={() => canTap && handleSelect(opt)} style={{
+              borderRadius: '14px', padding: '14px 16px', display: 'flex', gap: '12px',
+              alignItems: 'center', cursor: canTap ? 'pointer' : 'default',
+              transition: 'all 0.2s', background: st.bg, border: st.border, opacity: st.opacity,
+            }}>
+              <div style={{ width: '32px', height: '32px', borderRadius: '9px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 900, flexShrink: 0, fontFamily: F, background: st.badgeBg, color: st.badgeColor, transition: 'all 0.2s' }}>
+                {LETTERS[i]}
+              </div>
+              <Body style={{ fontSize: '16px' }}>{opt.label}</Body>
             </div>
-            <Body style={{ fontSize: '16px' }}>{opt.label}</Body>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
-      {/* Wrong answer feedback — inline hint only (NOT full explanation) */}
-      {wrongOpt && !revealed && wrongOpt.wrongExplanation && (
+      {/* Wrong explanation — shown below all options, never colliding */}
+      {wrongExplanation && selectedWrongId && !isAnswered && (
         <div style={{ background: '#FFF0F1', borderRadius: '14px', padding: '13px 16px', border: `1.5px solid ${C.red}33` }}>
-          <div style={{ fontSize: '14px', fontWeight: 800, color: C.red, fontFamily: F, marginBottom: '4px' }}>Not quite…</div>
-          <div style={{ fontSize: '15px', fontWeight: 700, color: '#C0222A', fontFamily: F, lineHeight: 1.6 }}>{wrongOpt.wrongExplanation}</div>
+          <div style={{ fontSize: '14px', fontWeight: 800, color: C.red, fontFamily: F, marginBottom: '4px' }}>Not quite...</div>
+          <div style={{ fontSize: '15px', fontWeight: 700, color: '#C0222A', fontFamily: F, lineHeight: 1.6 }}>{wrongExplanation}</div>
         </div>
       )}
 
-      {/* Partial XP reveal note */}
-      {revealed && (
+      {/* Partial XP note after reveal */}
+      {qState === 'revealed' && (
         <div style={{ background: C.amberLt, borderRadius: '12px', padding: '10px 14px', border: `1px solid #FFD70088`, fontSize: '13px', fontWeight: 700, color: '#7A4A00', fontFamily: F }}>
-          You earned {Math.floor(xpValue / 2)} XP — aim to get it first time next session!
+          You earned {Math.floor(xpValue / 2)} XP. Aim for first-time correct next session!
         </div>
       )}
 
-      {/* Structured explanation — only after correct or revealed (Req. 9) */}
-      {showExplanation && explanation && (
-        <div style={{ background: C.white, borderRadius: '16px', border: `1.5px solid ${isCorrect ? C.green : C.blue}`, overflow: 'hidden' }}>
-          {/* Result header */}
-          <div style={{ background: isCorrect ? C.greenLt : C.blueLt, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '20px' }}>{isCorrect ? '✅' : '📖'}</span>
+      {/* Structured explanation — only after correct or revealed */}
+      {showCorrectExpl && explanation && (
+        <div style={{ background: C.white, borderRadius: '16px', border: `1.5px solid ${qState === 'correct' ? C.green : C.blue}`, overflow: 'hidden' }}>
+          <div style={{ background: qState === 'correct' ? C.greenLt : C.blueLt, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ fontSize: '20px' }}>{qState === 'correct' ? '✅' : '📖'}</span>
             <div>
-              <div style={{ fontSize: '13px', fontWeight: 900, color: isCorrect ? C.greenDk : C.blue, fontFamily: F }}>
-                {isCorrect ? 'Correct!' : 'Here\'s the correct answer'}
+              <div style={{ fontSize: '13px', fontWeight: 900, color: qState === 'correct' ? C.greenDk : C.blue, fontFamily: F }}>
+                {qState === 'correct' ? 'Correct!' : 'Here\'s the correct answer'}
               </div>
               <div style={{ fontSize: '12px', fontWeight: 700, color: C.muted, fontFamily: F, marginTop: '2px' }}>
                 {LETTERS[options.indexOf(correctOpt)]} — {correctOpt?.label}
               </div>
             </div>
           </div>
-          {/* Explanation body */}
           <div style={{ padding: '14px 16px' }}>
             <div style={{ fontSize: '15px', fontWeight: 700, color: '#333', fontFamily: F, lineHeight: 1.65, marginBottom: correctWorkSteps.length ? '12px' : '0' }}>
               {explanation}
             </div>
-            {/* Formatted working steps (Req. 9) */}
             {correctWorkSteps.length > 0 && (
               <>
                 <Label>Working</Label>
@@ -770,8 +803,8 @@ function SlidePracticeQuestion({ slide, onNext, onXP, onMascotEmotion, onPractic
 
       {/* Action buttons */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        {selected && !isCorrect && !revealed && (
-          <button onClick={() => setSelected(null)} style={{ padding: '14px', borderRadius: '14px', border: `1.5px solid ${C.border}`, background: C.white, fontFamily: F, fontWeight: 800, fontSize: '15px', color: C.dark, cursor: 'pointer' }}>
+        {showTryAgain && !isAnswered && (
+          <button onClick={handleTryAgain} style={{ padding: '14px', borderRadius: '14px', border: `1.5px solid ${C.border}`, background: C.white, fontFamily: F, fontWeight: 800, fontSize: '15px', color: C.dark, cursor: 'pointer' }}>
             Try Again
           </button>
         )}
@@ -828,6 +861,77 @@ function SlideLessonComplete({ slide, totalXP }) {
   )
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// SLIDE 8b — TOPIC SUMMARY
+// Reference card: key points, formulas, definitions, application note.
+// ─────────────────────────────────────────────────────────────────────────────
+
+function SlideTopicSummary({ slide }) {
+  const { summaryTitle, keyPoints = [], formulas = [], definitions = [], applicationNote } = slide.content
+
+  return (
+    <div style={{ padding: '20px 20px 32px', flex: 1, display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <MascotCompanion emotion="teaching" message="Here's everything you learned in one place. Keep this as your reference! 📋" />
+
+      {/* Title */}
+      <div style={{ fontSize: '22px', fontWeight: 900, color: C.text, fontFamily: F, lineHeight: 1.2 }}>{summaryTitle}</div>
+
+      {/* Key points */}
+      {keyPoints.length > 0 && (
+        <div style={{ background: C.surface, borderRadius: '16px', padding: '16px 18px', border: `1px solid ${C.border}` }}>
+          <Label>Key Points</Label>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {keyPoints.map((pt, i) => (
+              <div key={i} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                <span style={{ color: C.blue, fontWeight: 900, flexShrink: 0, marginTop: '1px' }}>•</span>
+                <Body style={{ fontSize: '16px' }}>{pt}</Body>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Formulas */}
+      {formulas.length > 0 && (
+        <div>
+          <Label>Formulas to Remember</Label>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {formulas.map((f, i) => (
+              <div key={i} style={{ background: C.white, border: `2px solid ${C.blue}`, borderRadius: '12px', padding: '14px 16px' }}>
+                <div style={{ fontSize: '17px', fontWeight: 900, color: C.blue, fontFamily: F, marginBottom: '5px' }}>{f.formula}</div>
+                <div style={{ fontSize: '14px', fontWeight: 600, color: C.muted, fontFamily: F }}>{f.inWords}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Definitions */}
+      {definitions.length > 0 && (
+        <div style={{ background: C.surface, borderRadius: '16px', padding: '16px 18px', border: `1px solid ${C.border}` }}>
+          <Label>Key Definitions</Label>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {definitions.map((d, i) => (
+              <div key={i}>
+                <span style={{ fontSize: '15px', fontWeight: 800, color: C.text, fontFamily: F }}>{d.term}: </span>
+                <span style={{ fontSize: '15px', fontWeight: 600, color: C.body, fontFamily: F }}>{d.definition}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Application note */}
+      {applicationNote && (
+        <div style={{ background: C.amberLt, borderRadius: '14px', padding: '14px 16px', border: `1.5px solid #F59E0B55` }}>
+          <Label>Where You Will See This</Label>
+          <Body style={{ fontSize: '16px', color: '#5C3A00' }}>{applicationNote}</Body>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── SLIDE ROUTER ─────────────────────────────────────────────────────────────
 
 function SlideRenderer({ slide, onNext, onBack, onXP, onMascotEmotion, totalXP, onPracticeReady }) {
@@ -841,6 +945,7 @@ function SlideRenderer({ slide, onNext, onBack, onXP, onMascotEmotion, totalXP, 
     case 'worked_example':    return <SlideWorkedExample    {...props} />
     case 'try_it':            return <SlideTryIt            {...props} />
     case 'practice_question': return <SlidePracticeQuestion {...props} />
+    case 'topic_summary':     return <SlideTopicSummary     {...props} />
     case 'lesson_complete':   return <SlideLessonComplete   {...props} />
     default: return <div style={{ padding: '40px 20px', fontFamily: F, color: C.muted, textAlign: 'center' }}>Unknown: {slide.type}</div>
   }
