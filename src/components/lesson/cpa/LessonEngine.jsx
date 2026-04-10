@@ -333,15 +333,17 @@ function MascotCompanion({ emotion, message }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SLIDE 1 — TOPIC INTRO  (Req. 3: typewriter animation on mascotLine)
+// ─────────────────────────────────────────────────────────────────────────────
+// SLIDE 1 — TOPIC INTRO
+// Structure: image → mascotLine (typewriter) → hookLine → CTA
 // ─────────────────────────────────────────────────────────────────────────────
 
-function SlideTopicIntro({ slide }) {
-  const { topicTitle, mascotLine } = slide.content
-  const [displayed, setDisplayed]  = useState('')
-  const [done,      setDone]       = useState(false)
+function SlideTopicIntro({ slide, onNext }) {
+  const { topicTitle, mascotLine, hookLine, imagePrompt, imageUrl, ctaLabel } = slide.content
+  const [displayed, setDisplayed] = useState('')
+  const [done,      setDone]      = useState(false)
   const timerRef = useRef(null)
-  const fullText = mascotLine || ''
+  const fullText = mascotLine || `Today we're learning about ${topicTitle}.`
 
   useEffect(() => {
     setDisplayed(''); setDone(false)
@@ -355,33 +357,76 @@ function SlideTopicIntro({ slide }) {
   }, [fullText])
 
   return (
-    <div style={{ padding: '28px 20px 32px', flex: 1, display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      <div>
-        <div style={{ fontSize: '12px', fontWeight: 900, color: C.muted, textTransform: 'uppercase', letterSpacing: '1.2px', fontFamily: F, marginBottom: '10px' }}>
-          Today&apos;s Lesson
-        </div>
-        <div style={{ fontSize: '32px', fontWeight: 900, color: C.text, fontFamily: F, lineHeight: 1.2 }}>
-          {topicTitle}
-        </div>
-      </div>
+    <div style={{ padding: '20px 20px 32px', flex: 1, display: 'flex', flexDirection: 'column', gap: '0' }}>
 
-      {/* Mascot + typewriter bubble */}
-      <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-        <div style={{ flexShrink: 0 }}>
-          <LearniiBuddy size={60} expression="excited" />
+      {/* 1 — Lesson image or placeholder */}
+      {imageUrl ? (
+        <img
+          src={imageUrl}
+          alt={topicTitle}
+          style={{ width: '100%', height: '180px', objectFit: 'cover', borderRadius: '14px', marginBottom: '20px', display: 'block' }}
+        />
+      ) : (
+        <div style={{
+          width: '100%', height: '180px', borderRadius: '14px', marginBottom: '20px',
+          background: C.blueLt, border: `2px dashed ${C.blue}`,
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          gap: '8px', padding: '16px', boxSizing: 'border-box',
+        }}>
+          <svg width="28" height="28" fill="none" viewBox="0 0 24 24">
+            <rect x="3" y="5" width="18" height="14" rx="3" stroke="#2D3CE6" strokeWidth="1.5"/>
+            <circle cx="9" cy="10" r="2" stroke="#2D3CE6" strokeWidth="1.5"/>
+            <path d="M3 16l4-3 3 2.5 4-5 5 5.5" stroke="#2D3CE6" strokeWidth="1.5" strokeLinejoin="round"/>
+          </svg>
+          {imagePrompt && (
+            <div style={{ fontSize: '10px', fontWeight: 600, color: C.blue, fontFamily: F, textAlign: 'center', lineHeight: 1.5, maxWidth: '260px', opacity: 0.8 }}>
+              {imagePrompt.length > 80 ? imagePrompt.slice(0, 80) + '…' : imagePrompt}
+            </div>
+          )}
         </div>
-        <div style={{ background: C.surface, borderRadius: '0 16px 16px 16px', padding: '14px 16px', flex: 1, border: `1.5px solid ${C.border}`, minHeight: '60px' }}>
-          <div style={{ fontSize: '15px', fontWeight: 700, color: '#333', fontFamily: F, lineHeight: 1.6 }}>
+      )}
+
+      {/* 2 — Mascot + mascotLine typewriter */}
+      <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', marginBottom: '14px' }}>
+        <div style={{ flexShrink: 0 }}>
+          <LearniiBuddy size={52} expression="excited" />
+        </div>
+        <div style={{ background: C.surface, borderRadius: '0 16px 16px 16px', padding: '12px 14px', flex: 1, border: `1.5px solid ${C.border}`, minHeight: '52px' }}>
+          <div style={{ fontSize: '17px', fontWeight: 900, color: '#1A1A2E', fontFamily: F, lineHeight: 1.45 }}>
             {displayed}
             {!done && (
-              <span style={{ display: 'inline-block', width: '2px', height: '16px', background: C.blue, marginLeft: '2px', verticalAlign: 'middle', animation: 'twBlink 0.7s infinite' }} />
+              <span style={{ display: 'inline-block', width: '2px', height: '17px', background: C.blue, marginLeft: '2px', verticalAlign: 'middle', animation: 'twBlink 0.7s infinite' }} />
             )}
           </div>
         </div>
       </div>
 
-      <style>{`@keyframes twBlink{0%,100%{opacity:1}50%{opacity:0}}`}</style>
+      {/* 3 — Hook line (appears immediately, no delay) */}
+      {hookLine && (
+        <div style={{ fontSize: '14px', fontWeight: 600, color: '#555555', fontFamily: F, lineHeight: 1.65, marginBottom: '24px', paddingLeft: '4px' }}>
+          {hookLine}
+        </div>
+      )}
+
       <div style={{ flex: 1 }} />
+
+      {/* 4 — CTA button */}
+      <button
+        onClick={onNext}
+        style={{
+          width: '100%', padding: '14px', borderRadius: '14px', border: 'none',
+          background: C.green, color: C.white, fontFamily: F, fontWeight: 800,
+          fontSize: '16px', cursor: 'pointer', transition: 'background 0.15s, transform 0.1s',
+        }}
+        onMouseDown={e => e.currentTarget.style.transform = 'scale(0.98)'}
+        onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
+        onMouseEnter={e => e.currentTarget.style.background = C.greenDk}
+        onMouseLeave={e => e.currentTarget.style.background = C.green}
+      >
+        {ctaLabel || "Let's go! →"}
+      </button>
+
+      <style>{`@keyframes twBlink{0%,100%{opacity:1}50%{opacity:0}}`}</style>
     </div>
   )
 }
@@ -960,6 +1005,12 @@ export function LessonEngine({ lesson, onComplete }) {
   const [animKey,       setAnimKey]       = useState(0)
   const [dir,           setDir]           = useState(1)
   const [practiceReady, setPracticeReady] = useState(false)
+
+  // Fix 1 Layer 3 — body attribute so any component knows we're in lesson mode
+  useEffect(() => {
+    document.body.setAttribute('data-mode', 'lesson')
+    return () => { document.body.removeAttribute('data-mode') }
+  }, [])
 
   const total  = lesson.slides.length
   const slide  = lesson.slides[idx]

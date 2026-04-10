@@ -20,12 +20,16 @@ export const velocityLesson1 = {
 
   slides: [
 
-    // ── 1. Topic intro: typewriter fires on mascotLine
+    // ── 1. Topic intro: image + mascotLine typewriter + hookLine + CTA
     {
       id: 's1', type: 'topic_intro',
       content: {
-        topicTitle: 'Understanding Speed',
-        mascotLine: "Today we're learning about Speed.",
+        topicTitle:  'Understanding Speed',
+        mascotLine:  "Today we're learning about Speed.",
+        hookLine:    "When you watch a danfo overtake a keke napep on the expressway, you are already judging which one is moving faster.",
+        imagePrompt: "A bright flat-style illustration of a busy Lagos expressway. A yellow danfo bus is visibly faster than a keke napep, with motion lines behind the bus. Clear blue sky, Nigerian road markings, palm trees at the roadside. Friendly and energetic. For introducing the concept of speed to secondary school students.",
+        imageUrl:    null,
+        ctaLabel:    "Let's go!",
       },
     },
 

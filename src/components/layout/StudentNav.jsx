@@ -15,6 +15,12 @@ const NAV = [
 export function StudentNav() {
   const path = usePathname()
 
+  // Fix 1 Layer 1 — completely unmount nav on any active lesson route.
+  // The lesson layout (zIndex:9999) also covers it, but returning null here
+  // ensures the nav is never in the DOM during a lesson.
+  const isInsideLesson = /^\/learn\/[^/]+\/[^/]+/.test(path)
+  if (isInsideLesson) return null
+
   return (
     <>
       {/* ── Desktop sidebar */}
