@@ -1,48 +1,91 @@
-// GET /api/admin/batch/[batchId]/status — Poll batch status, retrieve results when done
-import Anthropic from '@anthropic-ai/sdk'
-import { sanitiseLesson } from '@/lib/utils/sanitiseLesson'
+// ─────────────────────────────────────────────────────────────────────────────
+// sanitiseLesson.js — Validates and cleans every generated lesson before save
+// Run on ALL lessons after generation, before any database write.
+// ─────────────────────────────────────────────────────────────────────────────
 
-const anthropic = new Anthropic()
+function stripDashes(obj) {
+  if (typeof obj === 'string') {
+    return obj.replace(/\s*[—–]\s*/g, ': ').trim()
+  }
+  if (Array.isArray(obj)) return obj.map(stripDashes)
+  if (typeof obj === 'object' && obj !== null) {
+    return Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, stripDashes(v)]))
+  }
+  return obj
+}
 
-export async function GET(request, { params }) {
-  const { batchId } = await params
+export function sanitiseLesson(lesson) {
+  // 1. Validate required top-level fields
+  const required = ['lessonId', 'topicId', 'subtopicTitle', 'subject', 'classLevel', 'slides']
+  for (const field of required) {
+    if (!lesson[field]) throw new Error(`Missing required field: ${field}`)
+  }
 
-  try {
-    const batch = await anthropic.beta.messages.batches.retrieve(batchId)
-    const res = {
-      batchId:       batch.id,
-      status:        batch.processing_status,
-      requestCounts: batch.request_counts,
-      createdAt:     batch.created_at,
-      endedAt:       batch.ended_at,
-    }
+  // 2. Slides array must have at least 4 slides
+  if (!Array.isArray(lesson.slides) || lesson.slides.length < 4) {
+    throw new Error('Lesson must have at least 4 slides')
+  }
 
-    if (batch.processing_status === 'ended') {
-      const lessons = [], errors = []
-      for await (const result of await anthropic.beta.messages.batches.results(batchId)) {
-        if (result.result.type === 'succeeded') {
-          try {
-            const raw   = result.result.message.content[0].text
-            const clean = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-            const lesson = sanitiseLesson(JSON.parse(clean))
-            // TODO: await db.lessons.create({ data: lesson })
-            lessons.push({ subtopicId: result.custom_id, lessonId: lesson.lessonId, status: 'generated' })
-          } catch(e) {
-            errors.push({ subtopicId: result.custom_id, error: e.message, status: 'failed' })
-          }
-        } else {
-          errors.push({ subtopicId: result.custom_id, error: result.result.error?.message || 'Failed', status: 'failed' })
+  // 3. First slide must be topic_intro
+  if (lesson.slides[0].type !== 'topic_intro') {
+    throw new Error('First slide must be topic_intro')
+  }
+
+  // 4. Last slide must be lesson_complete
+  const last = lesson.slides[lesson.slides.length - 1]
+  if (last.type !== 'lesson_complete') {
+    throw new Error('Last slide must be lesson_complete')
+  }
+
+  // 5. All practice questions must have wrongExplanation on wrong options
+  for (const slide of lesson.slides) {
+    if (slide.type === 'practice_question') {
+      if (!Array.isArray(slide.options)) throw new Error(`practice_question missing options array`)
+      for (const opt of slide.options) {
+        if (!opt.isCorrect && !opt.wrongExplanation) {
+          throw new Error(`Missing wrongExplanation on option ${opt.id} in: "${slide.question}"`)
         }
       }
-      // TODO: await db.batchJobs.update({ where: { batchId }, data: { status:'complete', completed: lessons.length, failed: errors.length } })
-      res.lessons = lessons
-      res.errors  = errors
+      const correctCount = slide.options.filter(o => o.isCorrect).length
+      if (correctCount !== 1) {
+        throw new Error(`practice_question must have exactly 1 correct option, found ${correctCount}`)
+      }
     }
-
-    return Response.json(res)
-
-  } catch (err) {
-    console.error('Batch status error:', err)
-    return Response.json({ error: err.message }, { status: 500 })
   }
+
+  // 6. Strip all em-dashes and en-dashes from all string content
+  return stripDashes(lesson)
+}
+
+// Extract all imagePrompts from a lesson for the admin image management panel
+export function extractImagePrompts(lesson) {
+  const slots = []
+  lesson.slides?.forEach((slide, i) => {
+    if (slide.imagePrompt) {
+      slots.push({
+        slideIndex:  i,
+        slideType:   slide.type,
+        prompt:      slide.imagePrompt,
+        imageUrl:    slide.imageUrl || null,
+        status:      slide.imageUrl ? 'uploaded' : 'pending',
+      })
+    }
+  })
+  return slots
+}
+
+// Extract all interactivityPrompts from a lesson
+export function extractInteractivityPrompts(lesson) {
+  const slots = []
+  lesson.slides?.forEach((slide, i) => {
+    if (slide.interactivityPrompt) {
+      slots.push({
+        slideIndex:  i,
+        slideType:   slide.type,
+        prompt:      slide.interactivityPrompt,
+        status:      'not_started',
+      })
+    }
+  })
+  return slots
 }
