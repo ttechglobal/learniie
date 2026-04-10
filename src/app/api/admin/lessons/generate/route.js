@@ -1,7 +1,7 @@
 // POST /api/admin/lessons/generate — Single lesson generation
 import Anthropic from '@anthropic-ai/sdk'
 import { LESSON_GENERATION_SYSTEM_PROMPT, buildSubtopicPayload } from '@/lib/prompts/lessonGeneration'
-import { sanitiseLesson } from '@/lib/utils/sanitiseLesson'
+import sanitiseLesson  from '@/lib/utils/sanitiseLesson'
 
 const anthropic = new Anthropic()
 
